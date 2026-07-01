@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Provider {
+  LOCAL
+  GOOGLE
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(100)
+  password  String?  @db.VarChar(100)
+  provider  Provider @default(LOCAL)
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profil    Profil?
+
+  searchHistories SearchHistory[]
+  wishlists       Wishlist[]
+  watchHistories  WatchHistory[]
+  comments        Comment[]
+  commentLikes    CommentLike[]
+
+  @@map("users")
+}
+
+model Profil {
+  id     Int     @id @default(autoincrement())
+  bio    String? @default("Binge-watcher by night, dreamer by day.")
+  avatar String?
+  cover  String?
+  userId Int     @unique
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+
+  @@map("profils")
+}
+
+model SearchHistory {
+  id        Int      @id @default(autoincrement())
+  keyword   String   @db.VarChar(255)
+  animeId   String   @db.VarChar(255) // slug/id dari samehadaku
+  title     String   @db.VarChar(255)
+  poster    String?  @db.Text
+  type      String?  @db.VarChar(50)
+  userId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId]) // 1 anime = 1 history per user
+  @@index([userId])
+  @@map("search_histories")
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  animeId   String   @db.VarChar(255)
+  title     String   @db.VarChar(255)
+  poster    String?  @db.Text
+  userId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId]) // 1 anime hanya bisa 1x per user
+  @@index([userId])
+  @@map("wishlists")
+}
+
+model WatchHistory {
+  id           Int      @id @default(autoincrement())
+  animeId      String   @db.VarChar(255) // slug anime
+  episodeId    String   @db.VarChar(255) // slug/id episode
+  title        String   @db.VarChar(255) // judul anime
+  episodeTitle String?  @db.VarChar(255) // judul episode (misal: "Episode 1")
+  poster       String?  @db.Text // URL poster
+  userId       Int
+  watchedAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, episodeId]) // 1 episode per user unik agar dapat di-upsert
+  @@index([userId])
+  @@index([watchedAt])
+  @@map("watch_histories")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  animeId   String   @db.VarChar(255) // slug anime (target komentar)
+  content   String   @db.Text
+  userId    Int
+  parentId  Int? // null = komentar utama, terisi = balasan (nested 1 level)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?      @relation("Replies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]     @relation("Replies")
+  likes   CommentLike[]
+
+  @@index([animeId, parentId, createdAt])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId]) // 1 user hanya bisa like 1x per komentar
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_likes")
+}

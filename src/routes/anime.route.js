@@ -1,0 +1,25 @@
+import express from "express";
+import animeController from "../controllers/anime.controller.js";
+
+const animeRoute = express.Router();
+// ✅ Route SPESIFIK dulu — sebelum wildcard :slug
+animeRoute.get('/api/anime/home', animeController.homeAnime);
+animeRoute.get('/api/hero-anime/home', animeController.homeHeroAnime);
+animeRoute.get('/api/anime-complete/home', animeController.homeAnimeComplete);
+animeRoute.get('/api/anime/search', animeController.search);
+animeRoute.get('/api/anime/genres', animeController.getGenreListHandler);  // ✅ pindah ke sini
+animeRoute.get('/api/anime/popular', animeController.popularAnimeHandler);
+animeRoute.get('/api/anime/complete', animeController.ListCompleteHandler);
+animeRoute.get('/api/anime/ongoing', animeController.ongoingAnimeHandler);
+animeRoute.get('/api/anime/recent', animeController.recentAnimeHandler);
+animeRoute.get('/api/anime/movies', animeController.moviesAnimeHandler);
+animeRoute.get('/api/anime/all', animeController.allAnimeHandler);
+animeRoute.get('/api/anime/schedule', animeController.scheduleHandler);
+animeRoute.get('/api/anime/episode/:episodeId', animeController.episodeDetailHandler); // ✅ pindah ke sini
+animeRoute.get('/api/anime/server/:serverId', animeController.serverUrlHandler); 
+animeRoute.get('/api/anime/genres/:genreId', animeController.animeByGenreHandler);     // ✅ pindah ke sini
+
+// ✅ Wildcard :slug PALING BAWAH
+animeRoute.get('/api/anime/:slug', animeController.getAnimeDetail);
+
+export { animeRoute };
